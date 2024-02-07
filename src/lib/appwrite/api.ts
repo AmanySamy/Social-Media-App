@@ -86,3 +86,178 @@ export async function getCurrentUser() {
         return null;
     }
 }
+
+// ============================== GET ACCOUNT
+export async function signOutAccount() {
+    try {
+        const session = await account.deleteSession('current');
+        return session;
+    } catch (error) {
+        console.log(error)
+    }
+}
+// ============================== GET POSTS
+export async function searchPosts(searchTerm: string) {
+    try {
+        const posts = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.postCollectionId,
+            [Query.search('caption', searchTerm)]
+        );
+
+        if (!posts) throw Error;
+        return posts;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export async function getInfinitePosts({ pageParam }: {pageParam:number}) {
+    const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+
+    if(pageParam) {
+        queries.push(Query.cursorAfter(pageParam.toString()));
+    }
+    try {
+        const posts = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.postCollectionId,
+            queries
+        )
+        if (!posts) throw Error;
+        return posts;
+    } catch (error) {
+        console.log(error);
+    }
+}
+// ============================== LIKE POST
+export async function likePost(postId: string, likesArray: string[]) {
+    try {
+        const updatedPost = await database.updateDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.postCollectionId,
+            postId,
+            {likes: likesArray}
+        );
+
+        if (!updatedPost) throw Error;
+
+        return updatedPost;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// ============================== SAVE POST
+export async function savePost(userID:string, postId: string) {
+    try {
+        const updatedPost = await database.createDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.savesCollectionId,
+            ID.unique(),
+            {
+                user: userID,
+                post: postId,
+            }
+            
+            )
+            if (!updatedPost) throw Error;
+
+            return updatedPost;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// ============================== DELETE SAVED POST
+export async function deleteSavedPost(savedRecordID: string) {
+    try {
+        const statusCode = await database.deleteDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.savesCollectionId,
+            savedRecordID
+        );
+
+        if(!statusCode) throw Error;
+
+        return {status: "Ok"}
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// ============================== GET USER'S POST
+export async function getUserPosts(userId?: string) {
+    if(!userId) return;
+
+    try {
+        const posts = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.postCollectionId,
+            [Query.equal('creator', userId),Query.orderDesc("$createdAt")]
+        )
+        if (!posts) throw Error;
+
+        return posts;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export async function getRecentPosts() {
+    try {
+        const posts = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.postCollectionId,
+            [Query.orderDesc("$createdAt"), Query.limit(20)]
+        );
+        if (!posts) throw Error;
+
+        return posts;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// ============================================================
+// USER
+// ============================================================
+
+// ============================== GET USERS
+export async function getUsers(limit?: number) {
+    const queries: any[] = [Query.orderDesc("$createdAt")];
+
+    if(limit) {
+        queries.push(Query.limit(limit))
+    }
+
+    try {
+        const users = await database.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            queries
+        )
+        if (!users) throw Error;
+
+        return users;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// ============================== GET USER BY ID
+export async function getUserById(userId: string) {
+    try {
+        const user = await database.getDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            userId
+        );
+
+        if (!user) throw Error;
+
+        return user;
+    } catch (error) {
+        console.log(error);
+    }
+}
